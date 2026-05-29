@@ -371,6 +371,5 @@ function ServiceTile({
     </div>
   );
   if (disabled) return <div>{content}</div>;
-  // @ts-expect-error TanStack Link strict path
-  return <Link to={to}>{content}</Link>;
+  return <Link to={to as never}>{content}</Link>;
 }
