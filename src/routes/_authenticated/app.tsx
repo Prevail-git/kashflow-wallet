@@ -353,8 +353,7 @@ function QuickAction({
     </div>
   );
   if (onClick) return <button type="button" onClick={onClick} className="text-left">{inner}</button>;
-  // @ts-expect-error TanStack Link strict path
-  return <Link to={to}>{inner}</Link>;
+  return <Link to={to as never}>{inner}</Link>;
 }
 
 function ServiceTile({
