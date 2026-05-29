@@ -112,8 +112,8 @@ export async function verifyToken(token: string): Promise<boolean> {
   return crypto.subtle.verify(
     { name: "ECDSA", hash: "SHA-256" },
     key,
-    b64uDecode(signatureB64),
-    b64uDecode(payloadB64),
+    b64uDecode(signatureB64) as BufferSource,
+    b64uDecode(payloadB64) as BufferSource,
   );
 }
 

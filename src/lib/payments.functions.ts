@@ -35,8 +35,8 @@ async function verifySig(token: string): Promise<{
   const ok = await crypto.subtle.verify(
     { name: "ECDSA", hash: "SHA-256" },
     key,
-    b64uDecode(s),
-    payloadBytes,
+    b64uDecode(s) as BufferSource,
+    payloadBytes as BufferSource,
   );
   return { ok, payload };
 }
@@ -92,14 +92,14 @@ export const submitToken = createServerFn({ method: "POST" })
       p_from: p.from,
       p_to: p.to,
       p_amount: p.amount_cents,
-      p_note: p.note ?? null,
+      p_note: p.note ?? "",
       p_signed_token: data.token,
       p_signer_public_key: p.pk,
       p_device_id: dev.id,
       p_issued_at: new Date(p.iat).toISOString(),
       p_expires_at: new Date(p.exp).toISOString(),
       p_submitter: userId,
-    });
+    } as never);
     if (error) return { ok: false, error: error.message };
     return result as { ok: boolean; error?: string; tx_id?: string };
   });
