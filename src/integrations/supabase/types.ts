@@ -14,16 +14,240 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      devices: {
+        Row: {
+          created_at: string
+          device_label: string
+          id: string
+          last_seen_at: string
+          public_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_label?: string
+          id?: string
+          last_seen_at?: string
+          public_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_label?: string
+          id?: string
+          last_seen_at?: string
+          public_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fraud_flags: {
+        Row: {
+          created_at: string
+          flagged_by: string | null
+          id: string
+          reason: string
+          resolved: boolean
+          transaction_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          flagged_by?: string | null
+          id?: string
+          reason: string
+          resolved?: boolean
+          transaction_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          flagged_by?: string | null
+          id?: string
+          reason?: string
+          resolved?: boolean
+          transaction_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fraud_flags_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          is_merchant: boolean
+          is_suspended: boolean
+          phone: string | null
+          public_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string
+          id: string
+          is_merchant?: boolean
+          is_suspended?: boolean
+          phone?: string | null
+          public_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_merchant?: boolean
+          is_suspended?: boolean
+          phone?: string | null
+          public_key?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          device_id: string | null
+          expires_at: string
+          failure_reason: string | null
+          from_user_id: string
+          id: string
+          issued_at: string
+          note: string | null
+          settled_at: string | null
+          signed_token: string
+          signer_public_key: string | null
+          status: Database["public"]["Enums"]["tx_status"]
+          submitted_by: string | null
+          to_user_id: string
+          token_jti: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          device_id?: string | null
+          expires_at: string
+          failure_reason?: string | null
+          from_user_id: string
+          id?: string
+          issued_at: string
+          note?: string | null
+          settled_at?: string | null
+          signed_token: string
+          signer_public_key?: string | null
+          status?: Database["public"]["Enums"]["tx_status"]
+          submitted_by?: string | null
+          to_user_id: string
+          token_jti: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          device_id?: string | null
+          expires_at?: string
+          failure_reason?: string | null
+          from_user_id?: string
+          id?: string
+          issued_at?: string
+          note?: string | null
+          settled_at?: string | null
+          signed_token?: string
+          signer_public_key?: string | null
+          status?: Database["public"]["Enums"]["tx_status"]
+          submitted_by?: string | null
+          to_user_id?: string
+          token_jti?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance_cents: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance_cents?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance_cents?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      settle_transaction: {
+        Args: {
+          p_amount: number
+          p_device_id: string
+          p_expires_at: string
+          p_from: string
+          p_issued_at: string
+          p_note: string
+          p_signed_token: string
+          p_signer_public_key: string
+          p_submitter: string
+          p_to: string
+          p_token_jti: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      tx_status: "pending" | "confirmed" | "failed" | "flagged"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +374,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      tx_status: ["pending", "confirmed", "failed", "flagged"],
+    },
   },
 } as const
