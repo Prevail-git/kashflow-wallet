@@ -196,9 +196,56 @@ function WalletHome() {
       <div className="grid grid-cols-4 gap-2">
         <QuickAction to="/send" icon={ArrowUpRight} label="Send" tone="primary" />
         <QuickAction to="/receive" icon={ArrowDownLeft} label="Request" tone="success" />
-        <QuickAction to="/app" icon={Plus} label="Top up" tone="muted" onClick={() => toast("Top-up coming soon")} />
+        <QuickAction to="/app" icon={Plus} label="Top up" tone="muted" onClick={() => setTopUpOpen(true)} />
         <QuickAction to="/history" icon={FileText} label="Statements" tone="muted" />
       </div>
+
+      <Dialog open={topUpOpen} onOpenChange={setTopUpOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Top up your wallet</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Amount (USD)</Label>
+              <Input inputMode="decimal" placeholder="0.00" className="num text-2xl" value={topUpAmount} onChange={(e) => setTopUpAmount(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Demo top-up · max $200 per request · $500 per day</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[20, 50, 100].map((v) => (
+                <Button key={v} type="button" variant="outline" size="sm" onClick={() => setTopUpAmount(String(v))}>
+                  ${v}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTopUpOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-gradient-emerald text-accent-foreground"
+              disabled={topUpBusy || !topUpAmount}
+              onClick={async () => {
+                const cents = Math.round(parseFloat(topUpAmount) * 100);
+                if (!Number.isFinite(cents) || cents <= 0) return toast.error("Enter a valid amount");
+                setTopUpBusy(true);
+                try {
+                  const res = await topUpWallet({ data: { amount_cents: cents } });
+                  if (res.ok) {
+                    toast.success(`Top-up of $${(cents / 100).toFixed(2)} confirmed`);
+                    setTopUpOpen(false);
+                    setTopUpAmount("");
+                    await refresh();
+                  } else {
+                    toast.error(res.error);
+                  }
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Top-up failed");
+                } finally { setTopUpBusy(false); }
+              }}
+            >
+              {topUpBusy ? "Processing…" : "Confirm top-up"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Account number / copy */}
       <Card className="flex items-center justify-between gap-4 p-4">
