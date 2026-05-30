@@ -31,33 +31,49 @@ function ReceivePage() {
 
   useEffect(() => {
     return () => {
-      scannerRef.current?.stop().catch(() => {});
-      scannerRef.current?.clear();
+      const s = scannerRef.current;
+      scannerRef.current = null;
+      if (s) {
+        s.stop().catch(() => {}).finally(() => { try { s.clear(); } catch {} });
+      }
     };
   }, []);
 
-  const startScan = async () => {
-    setMode("scanning");
-    try {
-      const el = document.getElementById("qr-reader");
-      if (!el) return;
-      const scanner = new Html5Qrcode("qr-reader");
-      scannerRef.current = scanner;
-      await scanner.start(
+  // Start the camera AFTER #qr-reader is mounted (when mode flips to "scanning")
+  useEffect(() => {
+    if (mode !== "scanning") return;
+    let cancelled = false;
+    const el = document.getElementById("qr-reader");
+    if (!el) return;
+    const scanner = new Html5Qrcode("qr-reader");
+    scannerRef.current = scanner;
+    scanner
+      .start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 240, height: 240 } },
         (text) => { void handleToken(text); },
         () => {},
-      );
-    } catch (e) {
-      toast.error("Camera unavailable — paste the token below instead");
-      setMode("idle");
-    }
-  };
+      )
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        toast.error(`Camera unavailable: ${msg}. Allow camera access or paste the token below.`);
+        scannerRef.current = null;
+        setMode("idle");
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  const startScan = () => setMode("scanning");
 
   const stopScan = async () => {
-    try { await scannerRef.current?.stop(); } catch {}
+    const s = scannerRef.current;
     scannerRef.current = null;
+    if (s) {
+      try { await s.stop(); } catch {}
+      try { s.clear(); } catch {}
+    }
   };
 
   const handleToken = async (raw: string) => {
