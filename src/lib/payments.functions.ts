@@ -140,7 +140,6 @@ export const findUserByEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ email: z.string().email() }).parse(input))
   .handler(async ({ data }) => {
-    // Use admin to look up the auth user (does not expose other PII)
     const { data: users } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
     const u = users?.users.find((x) => x.email?.toLowerCase() === data.email.toLowerCase());
     if (!u) return { ok: false as const, error: "No user with that email" };
@@ -150,6 +149,19 @@ export const findUserByEmail = createServerFn({ method: "POST" })
       .eq("id", u.id)
       .maybeSingle();
     if (!prof?.public_key) return { ok: false as const, error: "Recipient has no registered device yet" };
+    return { ok: true as const, profile: prof };
+  });
+
+export const findUserById = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({ user_id: z.string().uuid() }).parse(i))
+  .handler(async ({ data }) => {
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("id, display_name, public_key, is_merchant")
+      .eq("id", data.user_id)
+      .maybeSingle();
+    if (!prof) return { ok: false as const, error: "Recipient not found" };
     return { ok: true as const, profile: prof };
   });
 
