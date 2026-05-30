@@ -44,6 +44,9 @@ function WalletHome() {
   const [syncing, setSyncing] = useState(false);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [counterparties, setCounterparties] = useState<Record<string, string>>({});
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
+  const [topUpBusy, setTopUpBusy] = useState(false);
 
   const acctNumber = useMemo(() => {
     if (!user) return "•••• •••• •••• ••••";
