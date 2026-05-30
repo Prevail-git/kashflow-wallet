@@ -13,9 +13,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { countQueued, listQueued, removeQueued } from "@/lib/offline-queue";
-import { submitToken } from "@/lib/payments.functions";
+import { submitToken, topUpWallet } from "@/lib/payments.functions";
 import { useOnline } from "@/hooks/useOnline";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_authenticated/app")({
   component: WalletHome,
