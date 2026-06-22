@@ -218,9 +218,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          display_name: string | null
+          id: string | null
+          is_merchant: boolean | null
+          public_key: string | null
+        }
+        Insert: {
+          display_name?: string | null
+          id?: string | null
+          is_merchant?: boolean | null
+          public_key?: string | null
+        }
+        Update: {
+          display_name?: string | null
+          id?: string | null
+          is_merchant?: boolean | null
+          public_key?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      find_user_id_by_email: { Args: { p_email: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -228,6 +249,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_current_user_admin: { Args: never; Returns: boolean }
       settle_transaction: {
         Args: {
           p_amount: number
@@ -242,6 +264,10 @@ export type Database = {
           p_to: string
           p_token_jti: string
         }
+        Returns: Json
+      }
+      topup_wallet: {
+        Args: { p_amount: number; p_user: string }
         Returns: Json
       }
     }
