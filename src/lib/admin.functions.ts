@@ -13,6 +13,20 @@ async function assertAdmin(supabase: ReturnType<typeof supabaseAdmin.from> exten
   if (!data) throw new Error("Forbidden: admin role required");
 }
 
+// Server-validated admin check used to gate the /admin route loader.
+// Returns boolean instead of throwing so the loader can redirect cleanly.
+export const isCurrentUserAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    return { isAdmin: Boolean(data) };
+  });
+
 export const adminOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
