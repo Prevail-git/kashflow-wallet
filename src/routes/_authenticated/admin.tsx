@@ -1,30 +1,36 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Users, Receipt, Flag, ShieldAlert, Loader2 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { adminOverview, flagTransaction, toggleSuspendUser } from "@/lib/admin.functions";
+import {
+  adminOverview,
+  flagTransaction,
+  toggleSuspendUser,
+  isCurrentUserAdmin,
+} from "@/lib/admin.functions";
 import { formatMoney } from "@/components/AppShell";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  // Server-validated gate: prevents non-admins from reaching the page even if
+  // they tamper with client-side state. The _authenticated layout already
+  // ensures the user is signed in before this loader runs.
+  loader: async () => {
+    const { isAdmin } = await isCurrentUserAdmin();
+    if (!isAdmin) throw redirect({ to: "/app", replace: true });
+    return null;
+  },
   component: AdminPage,
 });
 
 type Overview = Awaited<ReturnType<typeof adminOverview>>;
 
 function AdminPage() {
-  const { isAdmin, loading } = useAuth();
-  const navigate = useNavigate();
   const [data, setData] = useState<Overview | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    if (!loading && !isAdmin) navigate({ to: "/app", replace: true });
-  }, [isAdmin, loading, navigate]);
 
   const load = async () => {
     setRefreshing(true);
@@ -32,9 +38,9 @@ function AdminPage() {
     catch (e) { toast.error((e as Error).message); }
     finally { setRefreshing(false); }
   };
-  useEffect(() => { if (isAdmin) void load(); }, [isAdmin]);
+  useEffect(() => { void load(); }, []);
 
-  if (!isAdmin || !data) {
+  if (!data) {
     return <Loader2 className="mx-auto mt-10 h-6 w-6 animate-spin text-muted-foreground" />;
   }
 

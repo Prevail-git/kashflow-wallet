@@ -221,6 +221,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_user_id_by_email: { Args: { p_email: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -228,6 +229,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_current_user_admin: { Args: never; Returns: boolean }
       settle_transaction: {
         Args: {
           p_amount: number
@@ -242,6 +244,10 @@ export type Database = {
           p_to: string
           p_token_jti: string
         }
+        Returns: Json
+      }
+      topup_wallet: {
+        Args: { p_amount: number; p_user: string }
         Returns: Json
       }
     }

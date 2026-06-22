@@ -140,13 +140,17 @@ export const findUserByEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ email: z.string().email() }).parse(input))
   .handler(async ({ data }) => {
-    const { data: users } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const u = users?.users.find((x) => x.email?.toLowerCase() === data.email.toLowerCase());
-    if (!u) return { ok: false as const, error: "No user with that email" };
+    // Use RPC to look up by email reliably (no 200-user pagination cap).
+    const { data: uid, error: rpcErr } = await supabaseAdmin.rpc(
+      "find_user_id_by_email" as never,
+      { p_email: data.email } as never,
+    );
+    if (rpcErr) return { ok: false as const, error: rpcErr.message };
+    if (!uid) return { ok: false as const, error: "No user with that email" };
     const { data: prof } = await supabaseAdmin
       .from("profiles")
       .select("id, display_name, public_key, is_merchant")
-      .eq("id", u.id)
+      .eq("id", uid as unknown as string)
       .maybeSingle();
     if (!prof?.public_key) return { ok: false as const, error: "Recipient has no registered device yet" };
     return { ok: true as const, profile: prof };
@@ -165,48 +169,19 @@ export const findUserById = createServerFn({ method: "POST" })
     return { ok: true as const, profile: prof };
   });
 
-// Demo top-up — credits the caller's wallet. Capped per call & per day.
+// Demo top-up — credits the caller's wallet atomically via an RPC that
+// holds a row-level lock and enforces the per-day cap inside one transaction.
 export const topUpWallet = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) => z.object({ amount_cents: z.number().int().positive().max(200_00) }).parse(i))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: recent } = await supabaseAdmin
-      .from("transactions")
-      .select("amount_cents")
-      .eq("to_user_id", userId)
-      .eq("from_user_id", userId)
-      .gte("created_at", since);
-    const used = (recent ?? []).reduce((s, t) => s + Number(t.amount_cents), 0);
-    if (used + data.amount_cents > 500_00) {
-      return { ok: false as const, error: "Daily top-up limit reached ($500)" };
-    }
-    const { data: w } = await supabaseAdmin
-      .from("wallets").select("balance_cents").eq("user_id", userId).maybeSingle();
-    if (w) {
-      const { error } = await supabaseAdmin
-        .from("wallets")
-        .update({ balance_cents: Number(w.balance_cents) + data.amount_cents, updated_at: new Date().toISOString() })
-        .eq("user_id", userId);
-      if (error) return { ok: false as const, error: error.message };
-    } else {
-      const { error } = await supabaseAdmin.from("wallets").insert({ user_id: userId, balance_cents: data.amount_cents });
-      if (error) return { ok: false as const, error: error.message };
-    }
-    const now = new Date();
-    await supabaseAdmin.from("transactions").insert({
-      token_jti: `topup-${crypto.randomUUID()}`,
-      from_user_id: userId,
-      to_user_id: userId,
-      amount_cents: data.amount_cents,
-      note: "Top-up",
-      status: "confirmed",
-      signed_token: "topup",
-      issued_at: now.toISOString(),
-      expires_at: new Date(now.getTime() + 60_000).toISOString(),
-      settled_at: now.toISOString(),
-      submitted_by: userId,
+    const { data: result, error } = await supabaseAdmin.rpc("topup_wallet" as never, {
+      p_user: userId,
+      p_amount: data.amount_cents,
     } as never);
+    if (error) return { ok: false as const, error: error.message };
+    const r = result as { ok: boolean; error?: string; balance_cents?: number };
+    if (!r?.ok) return { ok: false as const, error: r?.error ?? "Top-up failed" };
     return { ok: true as const };
   });
