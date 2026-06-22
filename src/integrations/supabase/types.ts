@@ -218,27 +218,7 @@ export type Database = {
       }
     }
     Views: {
-      public_profiles: {
-        Row: {
-          display_name: string | null
-          id: string | null
-          is_merchant: boolean | null
-          public_key: string | null
-        }
-        Insert: {
-          display_name?: string | null
-          id?: string | null
-          is_merchant?: boolean | null
-          public_key?: string | null
-        }
-        Update: {
-          display_name?: string | null
-          id?: string | null
-          is_merchant?: boolean | null
-          public_key?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       find_user_id_by_email: { Args: { p_email: string }; Returns: string }
